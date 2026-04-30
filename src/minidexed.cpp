@@ -272,7 +272,7 @@ CMiniDexed::~CMiniDexed (void)
 
 bool CMiniDexed::Initialize (void)
 {
-	LOGNOTE("CMiniDexed::Initialize called");
+	LOGNOTE("CMiniDexed::Initialize called - jorge build");
 	assert (m_pConfig);
 	assert (m_pSoundDevice);
 
