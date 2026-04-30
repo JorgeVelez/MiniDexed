@@ -364,6 +364,10 @@ void CMIDIDevice::MIDIMessageHandler (const u8 *pMessage, size_t nLength, unsign
 		bool bSystemCCHandled = false;
 		bool bSystemCCChecked = false;
 		if (ucStatus == MIDI_SYSTEM_EXCLUSIVE_BEGIN) {
+			// Performance dump request: F0 7D 4D 58 00 F7
+			if (nLength == 6 && pMessage[1] == 0x7D && pMessage[2] == 0x4D && pMessage[3] == 0x58 && pMessage[4] == 0x00) {
+				SendPerformanceDump(m_DeviceName, nCable);
+			} else {
 			uint8_t ucSysExChannel = (pMessage[2] & 0x0F);
 			for (unsigned nTG = 0; nTG < m_pConfig->GetToneGenerators(); nTG++) {
 				if (m_ChannelMap[nTG] == ucSysExChannel || m_ChannelMap[nTG] == OmniMode) {
@@ -485,6 +489,7 @@ void CMIDIDevice::MIDIMessageHandler (const u8 *pMessage, size_t nLength, unsign
 					}
 				}
 			}
+			} // end else (not performance dump request)
 		} else {
 			for (unsigned nTG = 0; nTG < m_pConfig->GetToneGenerators() && !bSystemCCHandled; nTG++) {
 				if (   m_ChannelMap[nTG] == ucChannel
@@ -871,4 +876,68 @@ void CMIDIDevice::SendSystemExclusiveVoice(uint8_t nVoice, const std::string& de
     } else {
         LOGWARN("No device found in s_DeviceMap for name: %s", deviceName.c_str());
     }
+}
+
+void CMIDIDevice::SendPerformanceDump(const std::string& deviceName, unsigned nCable)
+{
+	// Response format: F0 7D 4D 58 01 [8 x 14 bytes] checksum F7
+	CPerformanceConfig *pPerfConfig = m_pSynthesizer->GetPerformanceConfig();
+	if (!pPerfConfig) return;
+
+	const unsigned nTGs        = CConfig::AllToneGenerators;
+	const unsigned nBytesPerTG = 14;
+	const unsigned nDataLen    = nTGs * nBytesPerTG;
+
+	uint8_t buf[5 + nDataLen + 2];
+	unsigned i = 0;
+
+	buf[i++] = 0xF0;
+	buf[i++] = 0x7D;
+	buf[i++] = 0x4D;
+	buf[i++] = 0x58;
+	buf[i++] = 0x01;
+
+	uint8_t cs = 0;
+	for (unsigned nTG = 0; nTG < nTGs; nTG++)
+	{
+		int det = pPerfConfig->GetDetune(nTG);
+		int ns  = pPerfConfig->GetNoteShift(nTG);
+
+		uint8_t d[nBytesPerTG];
+		d[0]  = (uint8_t)(pPerfConfig->GetMIDIChannel(nTG)    & 0x7F);
+		d[1]  = (uint8_t)(pPerfConfig->GetVolume(nTG)         & 0x7F);
+		d[2]  = (uint8_t)(pPerfConfig->GetPan(nTG)            & 0x7F);
+		d[3]  = (uint8_t)((det < -64 ? 0 : det > 63 ? 127 : det + 64));
+		d[4]  = (uint8_t)(pPerfConfig->GetCutoff(nTG)         & 0x7F);
+		d[5]  = (uint8_t)(pPerfConfig->GetResonance(nTG)      & 0x7F);
+		d[6]  = (uint8_t)(pPerfConfig->GetReverbSend(nTG)     & 0x7F);
+		d[7]  = (uint8_t)(pPerfConfig->GetPitchBendRange(nTG) & 0x7F);
+		d[8]  = (uint8_t)(pPerfConfig->GetNoteLimitLow(nTG)   & 0x7F);
+		d[9]  = (uint8_t)(pPerfConfig->GetNoteLimitHigh(nTG)  & 0x7F);
+		d[10] = (uint8_t)((ns < -24 ? 0 : ns > 24 ? 48 : ns + 24));
+		d[11] = (uint8_t)(pPerfConfig->GetPortamentoTime(nTG) & 0x7F);
+		d[12] = (uint8_t)(pPerfConfig->GetBankNumber(nTG)     & 0x7F);
+		d[13] = (uint8_t)(pPerfConfig->GetVoiceNumber(nTG)    & 0x7F);
+
+		for (unsigned j = 0; j < nBytesPerTG; j++)
+		{
+			buf[i] = d[j] & 0x7F;
+			cs = (cs + buf[i]) & 0x7F;
+			i++;
+		}
+	}
+
+	buf[i++] = ((-cs) & 0x7F);
+	buf[i++] = 0xF7;
+
+	TDeviceMap::const_iterator Iterator = s_DeviceMap.find(deviceName);
+	if (Iterator != s_DeviceMap.end())
+	{
+		Iterator->second->Send(buf, i, nCable);
+		LOGDBG("Sent performance dump to \"%s\"", deviceName.c_str());
+	}
+	else
+	{
+		LOGWARN("SendPerformanceDump: No device found for \"%s\"", deviceName.c_str());
+	}
 }
