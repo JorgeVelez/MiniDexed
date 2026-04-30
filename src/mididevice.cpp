@@ -880,12 +880,13 @@ void CMIDIDevice::SendSystemExclusiveVoice(uint8_t nVoice, const std::string& de
 
 void CMIDIDevice::SendPerformanceDump(const std::string& deviceName, unsigned nCable)
 {
-	// Response format: F0 7D 4D 58 01 [8 x 14 bytes] checksum F7
+	// Response format: F0 7D 4D 58 01 [8 x 24 bytes] checksum F7
+	// Per TG: 14 param bytes + 10 voice name bytes
 	CPerformanceConfig *pPerfConfig = m_pSynthesizer->GetPerformanceConfig();
 	if (!pPerfConfig) return;
 
 	const unsigned nTGs        = CConfig::AllToneGenerators;
-	const unsigned nBytesPerTG = 14;
+	const unsigned nBytesPerTG = 24;
 	const unsigned nDataLen    = nTGs * nBytesPerTG;
 
 	uint8_t buf[5 + nDataLen + 2];
@@ -918,6 +919,12 @@ void CMIDIDevice::SendPerformanceDump(const std::string& deviceName, unsigned nC
 		d[11] = (uint8_t)(pPerfConfig->GetPortamentoTime(nTG) & 0x7F);
 		d[12] = (uint8_t)(pPerfConfig->GetBankNumber(nTG)     & 0x7F);
 		d[13] = (uint8_t)(pPerfConfig->GetVoiceNumber(nTG)    & 0x7F);
+
+		// Voice name: VCED bytes 145-154, at offset 151 in the SysEx dump
+		uint8_t voicedump[163];
+		m_pSynthesizer->getSysExVoiceDump(voicedump, nTG);
+		for (unsigned k = 0; k < 10; k++)
+			d[14 + k] = voicedump[151 + k] & 0x7F;
 
 		for (unsigned j = 0; j < nBytesPerTG; j++)
 		{
