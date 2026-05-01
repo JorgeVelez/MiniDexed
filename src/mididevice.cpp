@@ -334,12 +334,12 @@ void CMIDIDevice::MIDIMessageHandler (const u8 *pMessage, size_t nLength, unsign
 			{
 				switch (pMessage[1])
 				{
-				case 80: m_pSynthesizer->SetParameter (ParameterReverbSize,      maplong (pMessage[2], 0, 127, 0, 99)); break;
-				case 81: m_pSynthesizer->SetParameter (ParameterReverbHighDamp,  maplong (pMessage[2], 0, 127, 0, 99)); break;
-				case 82: m_pSynthesizer->SetParameter (ParameterReverbLowDamp,   maplong (pMessage[2], 0, 127, 0, 99)); break;
-				case 83: m_pSynthesizer->SetParameter (ParameterReverbLowPass,   maplong (pMessage[2], 0, 127, 0, 99)); break;
-				case 84: m_pSynthesizer->SetParameter (ParameterReverbDiffusion, maplong (pMessage[2], 0, 127, 0, 99)); break;
-				case 85: m_pSynthesizer->SetParameter (ParameterReverbLevel,     maplong (pMessage[2], 0, 127, 0, 99)); break;
+				case 80: m_pSynthesizer->SetParameter (CMiniDexed::ParameterReverbSize,      maplong (pMessage[2], 0, 127, 0, 99)); break;
+				case 81: m_pSynthesizer->SetParameter (CMiniDexed::ParameterReverbHighDamp,  maplong (pMessage[2], 0, 127, 0, 99)); break;
+				case 82: m_pSynthesizer->SetParameter (CMiniDexed::ParameterReverbLowDamp,   maplong (pMessage[2], 0, 127, 0, 99)); break;
+				case 83: m_pSynthesizer->SetParameter (CMiniDexed::ParameterReverbLowPass,   maplong (pMessage[2], 0, 127, 0, 99)); break;
+				case 84: m_pSynthesizer->SetParameter (CMiniDexed::ParameterReverbDiffusion, maplong (pMessage[2], 0, 127, 0, 99)); break;
+				case 85: m_pSynthesizer->SetParameter (CMiniDexed::ParameterReverbLevel,     maplong (pMessage[2], 0, 127, 0, 99)); break;
 				}
 			}
 			if (nLength == 3)
