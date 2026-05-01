@@ -329,6 +329,19 @@ void CMIDIDevice::MIDIMessageHandler (const u8 *pMessage, size_t nLength, unsign
 					}
 				}
 			}
+			// Global reverb parameters: CC80-85, any channel
+			if (nLength >= 3)
+			{
+				switch (pMessage[1])
+				{
+				case 80: m_pSynthesizer->SetParameter (ParameterReverbSize,      maplong (pMessage[2], 0, 127, 0, 99)); break;
+				case 81: m_pSynthesizer->SetParameter (ParameterReverbHighDamp,  maplong (pMessage[2], 0, 127, 0, 99)); break;
+				case 82: m_pSynthesizer->SetParameter (ParameterReverbLowDamp,   maplong (pMessage[2], 0, 127, 0, 99)); break;
+				case 83: m_pSynthesizer->SetParameter (ParameterReverbLowPass,   maplong (pMessage[2], 0, 127, 0, 99)); break;
+				case 84: m_pSynthesizer->SetParameter (ParameterReverbDiffusion, maplong (pMessage[2], 0, 127, 0, 99)); break;
+				case 85: m_pSynthesizer->SetParameter (ParameterReverbLevel,     maplong (pMessage[2], 0, 127, 0, 99)); break;
+				}
+			}
 			if (nLength == 3)
 			{
 				m_pUI->UIMIDICmdHandler (ucChannel, ucType, pMessage[1], pMessage[2]);
