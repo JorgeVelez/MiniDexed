@@ -380,6 +380,25 @@ void CMIDIDevice::MIDIMessageHandler (const u8 *pMessage, size_t nLength, unsign
 			// Performance dump request: F0 7D 4D 58 00 F7
 			if (nLength == 6 && pMessage[1] == 0x7D && pMessage[2] == 0x4D && pMessage[3] == 0x58 && pMessage[4] == 0x00) {
 				SendPerformanceDump(m_DeviceName, nCable);
+			// Per-TG parameter set: F0 7D 4D 58 02 [tg 0-7] [param] [value] F7
+			} else if (nLength == 9 && pMessage[1] == 0x7D && pMessage[2] == 0x4D && pMessage[3] == 0x58 && pMessage[4] == 0x02) {
+				unsigned nTG  = pMessage[5];
+				uint8_t  param = pMessage[6];
+				uint8_t  val   = pMessage[7];
+				if (nTG < m_pConfig->GetToneGenerators()) {
+					switch (param) {
+						case 0x00: m_pSynthesizer->SetVolume    (val, nTG); break;
+						case 0x01: m_pSynthesizer->SetPan       (val, nTG); break;
+						case 0x02:
+							if (val == 0) m_pSynthesizer->SetMasterTune (0, nTG);
+							else          m_pSynthesizer->SetMasterTune (maplong (val, 1, 127, -99, 99), nTG);
+							break;
+						case 0x03: m_pSynthesizer->SetCutoff    (maplong (val, 0, 127, 0, 99), nTG); break;
+						case 0x04: m_pSynthesizer->SetResonance (maplong (val, 0, 127, 0, 99), nTG); break;
+						case 0x05: m_pSynthesizer->SetReverbSend(maplong (val, 0, 127, 0, 99), nTG); break;
+						default: break;
+					}
+				}
 			} else {
 			uint8_t ucSysExChannel = (pMessage[2] & 0x0F);
 			for (unsigned nTG = 0; nTG < m_pConfig->GetToneGenerators(); nTG++) {

@@ -1,0 +1,36 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3)",
+      "Bash(python3 export_to_dx7.py \"performance/000002_Concert D.ini\" \"performance/000005_Cinematic.ini\")",
+      "Bash(python3 export_to_dx7.py \"performance/000002_Concert D.ini\" \"performance/000005_Cinematic.ini\" \"performance/000027_Rock Organ.ini\")",
+      "Bash(python3 import_from_dx7.py list sysex/voice/000001_filename.syx)",
+      "Bash(python3 import_from_dx7.py single 1 sysex/voice/000001_filename.syx -o performance/test_single.ini)",
+      "Bash(python3 import_from_dx7.py layer 1,11,24 sysex/voice/000001_filename.syx -o performance/test_layer.ini)",
+      "Bash(python3 import_from_dx7.py split 2,14 sysex/voice/000001_filename.syx --split-note 60 -o performance/test_split.ini)",
+      "Bash(python3 -)",
+      "Bash(python3 -c ' *)",
+      "Bash(grep \"\\\\.ini$\")",
+      "WebFetch(domain:pichenettes.github.io)",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:www.synthtopia.com)",
+      "WebFetch(domain:www.gearnews.com)",
+      "WebFetch(domain:www.community.vcvrack.com)",
+      "WebFetch(domain:www.modwiggler.com)",
+      "WebFetch(domain:api.github.com)",
+      "Bash(gh auth *)",
+      "Bash(gh repo *)",
+      "Bash(git remote *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(gh run *)",
+      "Bash(node extract-voices.js)",
+      "Bash(node -e \"const s=require\\('fs'\\).statSync\\('voices.json'\\); console.log\\(\\(s.size/1024\\).toFixed\\(1\\)+'KB'\\)\")",
+      "Bash(node -e ' *)",
+      "PowerShell(Get-Content \"C:/Users/jorge/.claude/projects/c--Users-jorge-Desktop-Proyectos-DSP-dx7-MiniDexed/8d55f075-4679-45f4-80fa-831b9073105b.jsonl\" | Select-Object -First 20 | ForEach-Object { try { $j = $_ | ConvertFrom-Json; \"$\\($j.type\\) | $\\($j.role\\) | $\\($j.timestamp\\)\" } catch { \"parse error\" } })"
+    ]
+  }
+}
