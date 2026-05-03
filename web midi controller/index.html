@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Web MIDI Controller</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+</head>
+<body>
+  <div class="app">
+    <header>
+      <h1>Web MIDI Controller</h1>
+      <div id="midi-status" class="status disconnected">MIDI not connected</div>
+      <span class="app-version">v.720</span>
+    </header>
+
+    <section class="device-panel">
+      <div class="device-group">
+        <label for="midi-in-select">MIDI Input</label>
+        <select id="midi-in-select" disabled>
+          <option value="">-- No devices --</option>
+        </select>
+      </div>
+      <div class="device-group">
+        <label for="midi-out-select">MIDI Output</label>
+        <select id="midi-out-select" disabled>
+          <option value="">-- No devices --</option>
+        </select>
+      </div>
+      <div class="device-group thru-group">
+        <label class="thru-label" for="thru-toggle">MIDI Thru</label>
+        <input type="checkbox" id="thru-toggle" checked>
+      </div>
+    </section>
+
+    <section class="controls-panel">
+      <div class="ctrl-group" style="flex: 3">
+        <h2>TG Mixer</h2>
+        <div class="tg-selector">
+          <span class="sound-presets-label">TG</span>
+          <button class="preset-btn active" data-tg="0">1</button>
+          <button class="preset-btn" data-tg="1">2</button>
+          <button class="preset-btn" data-tg="2">3</button>
+          <button class="preset-btn" data-tg="3">4</button>
+          <button class="preset-btn" data-tg="4">5</button>
+          <button class="preset-btn" data-tg="5">6</button>
+          <button class="preset-btn" data-tg="6">7</button>
+          <button class="preset-btn" data-tg="7">8</button>
+          <button class="preset-btn preset-btn--all" data-tg="all">all</button>
+          <select id="voice-select" class="voice-select" disabled>
+            <option value="">-- no library --</option>
+          </select>
+        </div>
+        <div class="knob-grid" id="ctrl-tg"></div>
+      </div>
+      <div class="ctrl-group">
+        <h2>Performance</h2>
+        <div class="pc-controls">
+          <span class="pc-title">Perf</span>
+          <button id="pc-prev-btn" disabled>&#9664;</button>
+          <div class="pc-display">
+            <span id="pc-label">1</span>
+            <span id="pc-name"></span>
+          </div>
+          <button id="pc-next-btn" disabled>&#9654;</button>
+        </div>
+        <div class="pc-ch-row">
+          <label for="pc-channel">PC Ch</label>
+          <input id="pc-channel" type="number" min="1" max="16" value="1">
+        </div>
+        <div class="pc-ch-row" style="margin-top:10px">
+          <button id="perf-dump-btn" disabled>Load from device</button>
+        </div>
+      </div>
+      <div class="ctrl-group">
+        <h2>Keyboard</h2>
+        <div class="knob-grid" id="ctrl-keyboard"></div>
+      </div>
+      <div class="ctrl-group">
+        <h2>Reverb</h2>
+        <div class="knob-grid" id="ctrl-reverb"></div>
+      </div>
+    </section>
+
+    <section class="piano-panel">
+      <div class="piano-header">
+        <div class="octave-controls">
+          <h2>Piano</h2>
+          <button id="oct-down-btn">&#9664; Oct</button>
+          <span id="piano-range-label" class="piano-range">C3 – B5</span>
+          <button id="oct-up-btn">Oct &#9654;</button>
+        </div>
+      </div>
+      <div class="piano-wrap">
+        <div id="piano" class="piano"></div>
+      </div>
+    </section>
+
+    <section class="monitor-panel">
+      <div class="monitor-header">
+        <h2>MIDI Monitor</h2>
+        <div class="log-filters">
+          <label class="log-filter"><input type="checkbox" data-filter="noteon"  checked> Note</label>
+          <label class="log-filter"><input type="checkbox" data-filter="cc"      checked> CC</label>
+          <label class="log-filter"><input type="checkbox" data-filter="pc"      checked> PC</label>
+          <label class="log-filter"><input type="checkbox" data-filter="sysex"   checked> SysEx</label>
+          <label class="log-filter"><input type="checkbox" data-filter="other"   checked> Other</label>
+          <span class="log-filter-sep">|</span>
+          <label class="log-filter"><input type="checkbox" data-filter="in"  checked> In</label>
+          <label class="log-filter"><input type="checkbox" data-filter="out" checked> Out</label>
+        </div>
+        <button id="clear-btn">Clear</button>
+      </div>
+      <div id="midi-log" class="midi-log">
+        <p class="placeholder">Waiting for MIDI messages...</p>
+      </div>
+    </section>
+
+    <section class="config-panel">
+      <h2>Configuration</h2>
+      <button id="reset-state-btn">Reset Saved</button>
+    </section>
+
+    <section class="send-panel">
+      <div class="send-controls">
+        <div class="send-field">
+          <label for="send-type">Type</label>
+          <select id="send-type">
+            <option value="noteon">Note On</option>
+            <option value="noteoff">Note Off</option>
+            <option value="cc">CC</option>
+            <option value="pc">Prog Chg</option>
+            <option value="sysex">SysEx</option>
+          </select>
+        </div>
+        <div class="send-field">
+          <label for="send-channel">Ch</label>
+          <input id="send-channel" type="number" min="1" max="16" value="1">
+        </div>
+        <div class="send-field" id="field-byte1">
+          <label for="send-byte1">Note / CC#</label>
+          <input id="send-byte1" type="number" min="0" max="127" value="60">
+        </div>
+        <div class="send-field" id="field-byte2">
+          <label for="send-byte2">Val / Vel</label>
+          <input id="send-byte2" type="number" min="0" max="127" value="100">
+        </div>
+        <div class="send-field" id="field-sysex" style="display:none">
+          <label for="send-sysex">Hex</label>
+          <input id="send-sysex" type="text" placeholder="F0 41 10 00 F7" spellcheck="false">
+        </div>
+        <button id="send-btn" disabled>Send</button>
+      </div>
+    </section>
+  </div>
+
+  <script type="module" src="main.js"></script>
+</body>
+</html>
