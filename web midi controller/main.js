@@ -11,7 +11,7 @@ import {
   soundChannel, sendTgCC, loadSoundState, onProgramChange,
   getCurrentProgram, getSelectedTg, getPcChannel,
   setOnTgChange, updateTgState, applyPerformanceDump, setPerfDumpBtnEnabled, changeTgMidiCh,
-  loadVoiceForTg,
+  loadVoiceForTg, requestVersion,
 } from './sound.js';
 import { loadVoices, populateVoiceSelect, matchVoiceByName, voices } from './voices.js';
 import {
@@ -134,7 +134,7 @@ refs.getPcChannel      = getPcChannel;
 
 setOnProgramChange(onProgramChange);
 setOnHighlightKey(highlightKey);
-setOnOutputChange(has => setPerfDumpBtnEnabled(has));
+setOnOutputChange(has => { setPerfDumpBtnEnabled(has); if (has) requestVersion(); });
 setOnPerformanceDump(applyPerformanceDump);
 const voiceSel = document.getElementById('voice-select');
 voiceSel.addEventListener('change', () => {

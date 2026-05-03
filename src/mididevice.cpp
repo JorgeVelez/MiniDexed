@@ -380,6 +380,9 @@ void CMIDIDevice::MIDIMessageHandler (const u8 *pMessage, size_t nLength, unsign
 			// Performance dump request: F0 7D 4D 58 00 F7
 			if (nLength == 6 && pMessage[1] == 0x7D && pMessage[2] == 0x4D && pMessage[3] == 0x58 && pMessage[4] == 0x00) {
 				SendPerformanceDump(m_DeviceName, nCable);
+			// Version query: F0 7D 4D 58 03 F7
+			} else if (nLength == 6 && pMessage[1] == 0x7D && pMessage[2] == 0x4D && pMessage[3] == 0x58 && pMessage[4] == 0x03) {
+				SendVersionResponse(m_DeviceName, nCable);
 			// Per-TG parameter set: F0 7D 4D 58 02 [tg 0-7] [param] [value] F7
 			} else if (nLength == 9 && pMessage[1] == 0x7D && pMessage[2] == 0x4D && pMessage[3] == 0x58 && pMessage[4] == 0x02) {
 				unsigned nTG  = pMessage[5];
@@ -978,5 +981,27 @@ void CMIDIDevice::SendPerformanceDump(const std::string& deviceName, unsigned nC
 	else
 	{
 		LOGWARN("SendPerformanceDump: No device found for \"%s\"", deviceName.c_str());
+	}
+}
+
+void CMIDIDevice::SendVersionResponse(const std::string& deviceName, unsigned nCable)
+{
+	static const char version[] = "jorge build v.720";
+	const unsigned nLen = sizeof(version) - 1;
+
+	uint8_t buf[5 + nLen + 1];
+	unsigned i = 0;
+	buf[i++] = 0xF0;
+	buf[i++] = 0x7D;
+	buf[i++] = 0x4D;
+	buf[i++] = 0x58;
+	buf[i++] = 0x04;
+	for (unsigned j = 0; j < nLen; j++) buf[i++] = (uint8_t)version[j];
+	buf[i++] = 0xF7;
+
+	TDeviceMap::const_iterator Iterator = s_DeviceMap.find(deviceName);
+	if (Iterator != s_DeviceMap.end())
+	{
+		Iterator->second->Send(buf, i, nCable);
 	}
 }

@@ -1,5 +1,5 @@
 import { saveState } from './state.js';
-import { selectedOutput, addLogEntry } from './devices.js';
+import { selectedOutput, addLogEntry, setOnVersionResponse } from './devices.js';
 import { sendVoiceSysEx, voices } from './voices.js';
 
 const pcPrevBtn   = document.getElementById('pc-prev-btn');
@@ -56,6 +56,16 @@ export function requestPerformanceDump() {
   selectedOutput.send([0xF0, 0x7D, 0x4D, 0x58, 0x00, 0xF7]);
   addLogEntry('SysEx', 'sysex', 'Performance dump request →');
 }
+
+export function requestVersion() {
+  if (!selectedOutput) return;
+  selectedOutput.send([0xF0, 0x7D, 0x4D, 0x58, 0x03, 0xF7]);
+}
+
+const versionEl = document.querySelector('.app-version');
+setOnVersionResponse(version => {
+  if (versionEl) versionEl.textContent = version;
+});
 
 export function applyPerformanceDump(data) {
   const BYTES_PER_TG = 24;

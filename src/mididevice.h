@@ -57,6 +57,7 @@ public:
 	// Change signature to specify device name
 	void SendSystemExclusiveVoice(uint8_t nVoice, const std::string& deviceName, unsigned nCable, uint8_t nTG);
 	void SendPerformanceDump(const std::string& deviceName, unsigned nCable);
+	void SendVersionResponse(const std::string& deviceName, unsigned nCable);
 	const std::string& GetDeviceName() const { return m_DeviceName; }
 
 protected:

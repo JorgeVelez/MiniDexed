@@ -26,9 +26,11 @@ export function setMidiThru(v) { midiThru = v; }
 let _onProgramChange    = null;
 let _onHighlightKey     = null;
 let _onPerformanceDump  = null;
+let _onVersionResponse  = null;
 export function setOnProgramChange(fn)   { _onProgramChange   = fn; }
 export function setOnHighlightKey(fn)    { _onHighlightKey    = fn; }
 export function setOnPerformanceDump(fn) { _onPerformanceDump = fn; }
+export function setOnVersionResponse(fn) { _onVersionResponse = fn; }
 
 // --- MIDI init ---
 export async function initMidi() {
@@ -126,6 +128,13 @@ function onMidiMessage(e) {
     if (e.data.length >= 7 && e.data[1] === 0x7D && e.data[2] === 0x4D && e.data[3] === 0x58 && e.data[4] === 0x01) {
       if (_onPerformanceDump) _onPerformanceDump(e.data);
       addLogEntry('SysEx', 'sysex', `Performance dump (${e.data.length} bytes)`, 'in');
+      return;
+    }
+    // MiniDexed version response: F0 7D 4D 58 04 [ASCII string] F7
+    if (e.data.length >= 6 && e.data[1] === 0x7D && e.data[2] === 0x4D && e.data[3] === 0x58 && e.data[4] === 0x04) {
+      const version = String.fromCharCode(...e.data.slice(5, -1));
+      if (_onVersionResponse) _onVersionResponse(version);
+      addLogEntry('SysEx', 'sysex', `Version: ${version}`, 'in');
       return;
     }
     const text = [...e.data].filter(b => b >= 0x20 && b <= 0x7e).map(b => String.fromCharCode(b)).join('').replace(/^[^a-zA-Z0-9\[{(]+/, '');

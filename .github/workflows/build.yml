@@ -24,12 +24,7 @@ jobs:
         run: echo "git_info=$(date +%Y-%m-%d)-$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
       - name: Get specific commits of git submodules
-        run: |
-          git submodule update --init -f
-          cd circle-stdlib && git checkout -f v17.2 && cd -
-          git submodule update --init --recursive -f circle-stdlib
-          cd circle-stdlib/libs/circle && git checkout -f b42d060 && cd -
-          git submodule update --init --recursive -f circle-stdlib/libs/circle
+        run: sh -ex ./submod.sh
 
       - name: Create sdcard directory
         run: mkdir -p ./sdcard/
@@ -114,12 +109,7 @@ jobs:
         run: echo "GIT_INFO=$(date +%Y-%m-%d)-$(git rev-parse --short HEAD)" >> $GITHUB_ENV
 
       - name: Get specific commits of git submodules
-        run: |
-          git submodule update --init -f
-          cd circle-stdlib && git checkout -f v17.2 && cd -
-          git submodule update --init --recursive -f circle-stdlib
-          cd circle-stdlib/libs/circle && git checkout -f b42d060 && cd -
-          git submodule update --init --recursive -f circle-stdlib/libs/circle
+        run: sh -ex ./submod.sh
 
       - name: Create sdcard directory
         run: mkdir -p ./sdcard/
