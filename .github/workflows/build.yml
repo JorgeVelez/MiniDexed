@@ -16,11 +16,11 @@ jobs:
       artifact-path: ${{ steps.upload64.outputs.artifact-path }}
       git_info: ${{ steps.gitinfo.outputs.git_info }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
       - name: Compute Git Info for Artifact Name
         id: gitinfo
-        run: echo "::set-output name=git_info::$(date +%Y-%m-%d)-$(git rev-parse --short HEAD)"
+        run: echo "git_info=$(date +%Y-%m-%d)-$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
       - name: Get specific commits of git submodules
         run: sh -ex ./submod.sh
@@ -102,7 +102,7 @@ jobs:
     outputs:
       artifact-path: ${{ steps.upload32.outputs.artifact-path }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
       - name: Compute Git Info for Artifact Name
         run: echo "GIT_INFO=$(date +%Y-%m-%d)-$(git rev-parse --short HEAD)" >> $GITHUB_ENV
