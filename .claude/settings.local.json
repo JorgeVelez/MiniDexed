@@ -30,7 +30,8 @@
       "Bash(node extract-voices.js)",
       "Bash(node -e \"const s=require\\('fs'\\).statSync\\('voices.json'\\); console.log\\(\\(s.size/1024\\).toFixed\\(1\\)+'KB'\\)\")",
       "Bash(node -e ' *)",
-      "PowerShell(Get-Content \"C:/Users/jorge/.claude/projects/c--Users-jorge-Desktop-Proyectos-DSP-dx7-MiniDexed/8d55f075-4679-45f4-80fa-831b9073105b.jsonl\" | Select-Object -First 20 | ForEach-Object { try { $j = $_ | ConvertFrom-Json; \"$\\($j.type\\) | $\\($j.role\\) | $\\($j.timestamp\\)\" } catch { \"parse error\" } })"
+      "PowerShell(Get-Content \"C:/Users/jorge/.claude/projects/c--Users-jorge-Desktop-Proyectos-DSP-dx7-MiniDexed/8d55f075-4679-45f4-80fa-831b9073105b.jsonl\" | Select-Object -First 20 | ForEach-Object { try { $j = $_ | ConvertFrom-Json; \"$\\($j.type\\) | $\\($j.role\\) | $\\($j.timestamp\\)\" } catch { \"parse error\" } })",
+      "Bash(git rm *)"
     ]
   }
 }
