@@ -1,6 +1,6 @@
 import { addLogEntry } from './devices.js';
 
-const CHUNK_RAW = 448; // 7 * 64 → encodes to 512 bytes per SysEx chunk
+const CHUNK_RAW = 896; // 7 * 128 → encodes to 1024 bytes per SysEx chunk
 
 function encode7bit(raw) {
   const groups  = Math.ceil(raw.length / 7);

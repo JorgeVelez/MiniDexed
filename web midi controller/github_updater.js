@@ -89,7 +89,8 @@ export async function checkAndDownloadKernel(repo, piHash, onStatus) {
   const sizeKb = (asset.size / 1024).toFixed(0);
   onStatus(`Downloading ${version} (${sizeKb} KB)…`);
 
-  const resp = await fetch(asset.browser_download_url);
+  const downloadUrl = `/proxy?url=${encodeURIComponent(asset.browser_download_url)}`;
+  const resp = await fetch(downloadUrl);
   if (!resp.ok) throw new Error(`Download failed: ${resp.status}`);
   const buf = await resp.arrayBuffer();
 

@@ -180,6 +180,9 @@ otaFlashBtn.addEventListener('click', async () => {
   otaFlashBtn.disabled = !selectedOutput || !otaFileInput.files.length;
 });
 async function flashBlob(blob) {
+  const hadThru = thruToggle.checked;
+  if (hadThru) { thruToggle.checked = false; setMidiThru(false); }
+
   otaFlashBtn.disabled = true;
   otaCheckBtn.disabled = true;
   otaAbortBtn.style.display = '';
@@ -212,6 +215,7 @@ async function flashBlob(blob) {
   } finally {
     if (!aborted) otaAbortBtn.style.display = 'none';
     otaCheckBtn.disabled = !selectedOutput;
+    if (hadThru) { thruToggle.checked = true; setMidiThru(true); }
   }
 }
 
