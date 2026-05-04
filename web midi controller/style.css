@@ -976,6 +976,27 @@ select[disabled] {
   margin: 0;
 }
 
+.config-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.config-row label {
+  font-size: 11px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.config-row input[type="text"] {
+  width: 160px;
+  font-size: 11px;
+}
+
+#ota-check-btn {
+  margin-left: auto;
+}
+
 /* ── OTA panel ── */
 .ota-panel {
   background: transparent;

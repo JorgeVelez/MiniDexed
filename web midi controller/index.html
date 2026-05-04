@@ -120,6 +120,10 @@
 
     <section class="config-panel">
       <h2>Configuration</h2>
+      <div class="config-row">
+        <label for="gh-repo">GitHub Repo</label>
+        <input id="gh-repo" type="text" placeholder="owner/repo" spellcheck="false">
+      </div>
       <button id="reset-state-btn">Reset Saved</button>
     </section>
 
@@ -129,6 +133,7 @@
         <input type="file" id="ota-file" accept=".img">
         <button id="ota-flash-btn" disabled>Flash kernel</button>
         <button id="ota-abort-btn" style="display:none">Abort</button>
+        <button id="ota-check-btn" disabled>Check &amp; Flash update</button>
       </div>
       <div class="ota-progress" id="ota-progress" style="display:none">
         <div class="ota-bar-track"><div class="ota-bar" id="ota-bar"></div></div>

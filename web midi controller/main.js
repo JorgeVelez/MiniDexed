@@ -8,6 +8,7 @@ import {
   selectedOutput, addLogEntry, setMidiThru, setOnOtaAck,
 } from './devices.js';
 import { sendKernelUpdate, sendOtaAbort } from './updater.js';
+import { checkAndDownloadKernel, getStoredRepo, saveRepo } from './github_updater.js';
 import {
   soundChannel, sendTgCC, loadSoundState, onProgramChange,
   getCurrentProgram, getSelectedTg, getPcChannel,
@@ -135,15 +136,26 @@ refs.getPcChannel      = getPcChannel;
 
 setOnProgramChange(onProgramChange);
 setOnHighlightKey(highlightKey);
-setOnOutputChange(has => { setPerfDumpBtnEnabled(has); if (has) setTimeout(() => requestVersion(), 500); otaFlashBtn.disabled = !has || !otaFileInput.files.length; });
+setOnOutputChange(has => {
+  setPerfDumpBtnEnabled(has);
+  if (has) setTimeout(() => requestVersion(), 500);
+  otaFlashBtn.disabled = !has || !otaFileInput.files.length;
+  otaCheckBtn.disabled = !has;
+});
 
 // ── OTA ──────────────────────────────────────────────────────────────────────
 const otaFileInput  = document.getElementById('ota-file');
 const otaFlashBtn   = document.getElementById('ota-flash-btn');
 const otaAbortBtn   = document.getElementById('ota-abort-btn');
+const otaCheckBtn   = document.getElementById('ota-check-btn');
 const otaProgress   = document.getElementById('ota-progress');
 const otaBar        = document.getElementById('ota-bar');
 const otaStatusEl   = document.getElementById('ota-status');
+const ghRepoInput   = document.getElementById('gh-repo');
+
+// Restore saved repo
+ghRepoInput.value = getStoredRepo();
+ghRepoInput.addEventListener('change', () => saveRepo(ghRepoInput.value));
 
 otaFileInput.addEventListener('change', () => {
   otaFlashBtn.disabled = !selectedOutput || !otaFileInput.files.length;
@@ -163,12 +175,16 @@ setOnOtaAck(status => {
 otaFlashBtn.addEventListener('click', async () => {
   const file = otaFileInput.files[0];
   if (!file || !selectedOutput) return;
-
+  otaStatusEl.textContent = '';
+  await flashBlob(file);
+  otaFlashBtn.disabled = !selectedOutput || !otaFileInput.files.length;
+});
+async function flashBlob(blob) {
   otaFlashBtn.disabled = true;
+  otaCheckBtn.disabled = true;
   otaAbortBtn.style.display = '';
   otaProgress.style.display = 'flex';
   otaBar.style.width = '0%';
-  otaStatusEl.textContent = '';
 
   let aborted = false;
   otaAbortBtn.onclick = () => {
@@ -176,12 +192,12 @@ otaFlashBtn.addEventListener('click', async () => {
     sendOtaAbort(selectedOutput);
     otaStatusEl.textContent = 'Aborted';
     otaAbortBtn.style.display = 'none';
-    otaFlashBtn.disabled = false;
+    otaCheckBtn.disabled = false;
   };
 
   try {
     await sendKernelUpdate(
-      file,
+      blob,
       selectedOutput,
       (sent, total) => {
         if (aborted) throw new Error('aborted');
@@ -195,7 +211,40 @@ otaFlashBtn.addEventListener('click', async () => {
     if (!aborted) otaStatusEl.textContent = `Error: ${err.message}`;
   } finally {
     if (!aborted) otaAbortBtn.style.display = 'none';
-    otaFlashBtn.disabled = false;
+    otaCheckBtn.disabled = !selectedOutput;
+  }
+}
+
+otaCheckBtn.addEventListener('click', async () => {
+  if (!selectedOutput) return;
+  otaCheckBtn.disabled = true;
+  otaProgress.style.display = 'flex';
+  otaBar.style.width = '0%';
+  otaStatusEl.textContent = '';
+
+  const piHash = (() => {
+    const fw = document.getElementById('fw-version')?.textContent?.trim();
+    if (!fw) return null;
+    const parts = fw.split('-');
+    return parts[parts.length - 1].toLowerCase() || null;
+  })();
+
+  try {
+    const result = await checkAndDownloadKernel(
+      ghRepoInput.value.trim(),
+      piHash,
+      msg => { otaStatusEl.textContent = msg; }
+    );
+    if (result.upToDate) {
+      otaStatusEl.textContent = `Up to date (${result.version})`;
+      otaCheckBtn.disabled = false;
+      return;
+    }
+    otaStatusEl.textContent = `${result.version} — starting flash…`;
+    await flashBlob(result.blob);
+  } catch (err) {
+    otaStatusEl.textContent = `Error: ${err.message}`;
+    otaCheckBtn.disabled = false;
   }
 });
 // ─────────────────────────────────────────────────────────────────────────────

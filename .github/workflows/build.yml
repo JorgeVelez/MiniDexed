@@ -101,6 +101,9 @@ jobs:
           zip -r ../MiniDexed_${{ github.run_number }}_${{ needs.build64.outputs.git_info }}.zip .
           cd ..
 
+      - name: Create kernel-only ZIP for OTA
+        run: zip -j MiniDexed_${{ github.run_number }}_${{ needs.build64.outputs.git_info }}_kernel.zip combined/kernel8.img
+
       - name: Upload to GitHub Releases (only when building from main branch)
         if: ${{ github.ref == 'refs/heads/main' }}
         run: |
