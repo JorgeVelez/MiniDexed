@@ -56,10 +56,23 @@ h1 {
 }
 
 .app-version {
-  font-size: 10px;
-  opacity: 0.4;
+  font-size: 11px;
+  opacity: 0.75;
   margin-left: 8px;
   align-self: flex-end;
+  color: var(--accent);
+}
+
+.fw-version {
+  font-size: 10px;
+  opacity: 0.6;
+  margin-left: 6px;
+  align-self: flex-end;
+  color: var(--text-dim);
+}
+
+.fw-version:not(:empty)::before {
+  content: 'FW: ';
 }
 
 h2 {

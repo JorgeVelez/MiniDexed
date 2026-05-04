@@ -55,6 +55,7 @@ export function requestPerformanceDump() {
   if (!selectedOutput) return;
   selectedOutput.send([0xF0, 0x7D, 0x4D, 0x58, 0x00, 0xF7]);
   addLogEntry('SysEx', 'sysex', 'Performance dump request →');
+  selectedOutput.send([0xF0, 0x7D, 0x4D, 0x58, 0x03, 0xF7]);
 }
 
 export function requestVersion() {
@@ -62,9 +63,9 @@ export function requestVersion() {
   selectedOutput.send([0xF0, 0x7D, 0x4D, 0x58, 0x03, 0xF7]);
 }
 
-const versionEl = document.querySelector('.app-version');
+const fwVersionEl = document.getElementById('fw-version');
 setOnVersionResponse(version => {
-  if (versionEl) versionEl.textContent = version;
+  if (fwVersionEl) fwVersionEl.textContent = version;
 });
 
 export function applyPerformanceDump(data) {

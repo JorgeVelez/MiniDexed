@@ -135,7 +135,7 @@ refs.getPcChannel      = getPcChannel;
 
 setOnProgramChange(onProgramChange);
 setOnHighlightKey(highlightKey);
-setOnOutputChange(has => { setPerfDumpBtnEnabled(has); if (has) requestVersion(); otaFlashBtn.disabled = !has || !otaFileInput.files.length; });
+setOnOutputChange(has => { setPerfDumpBtnEnabled(has); if (has) setTimeout(() => requestVersion(), 500); otaFlashBtn.disabled = !has || !otaFileInput.files.length; });
 
 // ── OTA ──────────────────────────────────────────────────────────────────────
 const otaFileInput  = document.getElementById('ota-file');

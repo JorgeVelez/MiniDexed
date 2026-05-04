@@ -272,7 +272,7 @@ CMiniDexed::~CMiniDexed (void)
 
 bool CMiniDexed::Initialize (void)
 {
-	LOGNOTE("CMiniDexed::Initialize called - jorge build v.720");
+	LOGNOTE("CMiniDexed::Initialize called -v.721 autoupdater");
 	assert (m_pConfig);
 	assert (m_pSoundDevice);
 
