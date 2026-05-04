@@ -1,6 +1,6 @@
 import { addLogEntry } from './devices.js';
 
-const CHUNK_RAW = 896; // 7 * 128 → encodes to 1024 bytes per SysEx chunk
+const CHUNK_RAW = 3584; // 7 * 512 → encodes to 4096 bytes per SysEx chunk
 
 function encode7bit(raw) {
   const groups  = Math.ceil(raw.length / 7);
@@ -54,7 +54,7 @@ export async function sendKernelUpdate(file, output, onProgress, onStatus) {
       0xF7,
     ]);
     onProgress(i + 1, totalChunks);
-    if (i % 64 === 63) await delay(4); // periodic yield
+    if (i % 16 === 15) await Promise.resolve(); // yield to event loop (not throttled by background tabs)
   }
 
   onStatus('Committing…');
