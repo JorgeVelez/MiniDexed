@@ -22,6 +22,8 @@
 //
 
 #include <circle/logger.h>
+#include <circle/timer.h>
+#include <circle/bcm2835.h>
 #include "mididevice.h"
 #include "minidexed.h"
 #include "config.h"
@@ -82,6 +84,13 @@ CMIDIDevice::CMIDIDevice (CMiniDexed *pSynthesizer, CConfig *pConfig, CUserInter
 		// Either disabled or OMNI means disabled
 		m_nMIDIGlobalExpression = Disabled;
 	}
+
+	m_pOtaBuffer      = nullptr;
+	m_nOtaTotalBytes  = 0;
+	m_nOtaBytesWritten = 0;
+	m_nOtaTotalChunks = 0;
+	m_nOtaChunksReceived = 0;
+	m_nOtaChecksum    = 0;
 
 	for (int tg=0; tg<8; tg++)
 	{
@@ -383,6 +392,18 @@ void CMIDIDevice::MIDIMessageHandler (const u8 *pMessage, size_t nLength, unsign
 			// Version query: F0 7D 4D 58 03 F7
 			} else if (nLength == 6 && pMessage[1] == 0x7D && pMessage[2] == 0x4D && pMessage[3] == 0x58 && pMessage[4] == 0x03) {
 				SendVersionResponse(m_DeviceName, nCable);
+			// OTA start: F0 7D 4D 58 10 [ch_hi] [ch_lo] [sz0..sz3] F7  (12 bytes)
+			} else if (nLength == 12 && pMessage[1] == 0x7D && pMessage[2] == 0x4D && pMessage[3] == 0x58 && pMessage[4] == 0x10) {
+				HandleOtaStart(pMessage, nLength, m_DeviceName, nCable);
+			// OTA chunk: F0 7D 4D 58 11 [idx_hi] [idx_lo] [7bit data...] F7
+			} else if (nLength >= 16 && pMessage[1] == 0x7D && pMessage[2] == 0x4D && pMessage[3] == 0x58 && pMessage[4] == 0x11) {
+				HandleOtaChunk(pMessage, nLength);
+			// OTA commit: F0 7D 4D 58 12 [cs0..cs3] F7  (9 bytes)
+			} else if (nLength == 9 && pMessage[1] == 0x7D && pMessage[2] == 0x4D && pMessage[3] == 0x58 && pMessage[4] == 0x12) {
+				HandleOtaCommit(pMessage, nLength, m_DeviceName, nCable);
+			// OTA abort: F0 7D 4D 58 13 F7  (6 bytes)
+			} else if (nLength == 6 && pMessage[1] == 0x7D && pMessage[2] == 0x4D && pMessage[3] == 0x58 && pMessage[4] == 0x13) {
+				HandleOtaAbort();
 			// Per-TG parameter set: F0 7D 4D 58 02 [tg 0-7] [param] [value] F7
 			} else if (nLength == 9 && pMessage[1] == 0x7D && pMessage[2] == 0x4D && pMessage[3] == 0x58 && pMessage[4] == 0x02) {
 				unsigned nTG  = pMessage[5];
@@ -983,6 +1004,166 @@ void CMIDIDevice::SendPerformanceDump(const std::string& deviceName, unsigned nC
 		LOGWARN("SendPerformanceDump: No device found for \"%s\"", deviceName.c_str());
 	}
 }
+
+// ── OTA kernel update ────────────────────────────────────────────────────────
+
+void CMIDIDevice::HandleOtaStart(const uint8_t *pMessage, size_t nLength,
+                                  const std::string& deviceName, unsigned nCable)
+{
+	unsigned totalChunks = ((unsigned)pMessage[5] << 7) | pMessage[6];
+	size_t   totalBytes  = (size_t)pMessage[7]
+	                     | ((size_t)pMessage[8]  <<  7)
+	                     | ((size_t)pMessage[9]  << 14)
+	                     | ((size_t)pMessage[10] << 21);
+
+	if (totalBytes == 0 || totalBytes > 8*1024*1024 || totalChunks == 0)
+	{
+		LOGWARN("OTA: Invalid start params (chunks=%u size=%u)", totalChunks, (unsigned)totalBytes);
+		SendOtaAck(deviceName, nCable, 0x7F);
+		return;
+	}
+
+	delete[] m_pOtaBuffer;
+	m_pOtaBuffer = new uint8_t[totalBytes];
+	if (!m_pOtaBuffer)
+	{
+		LOGWARN("OTA: Buffer allocation failed (%u bytes)", (unsigned)totalBytes);
+		SendOtaAck(deviceName, nCable, 0x7F);
+		return;
+	}
+
+	m_nOtaTotalBytes     = totalBytes;
+	m_nOtaBytesWritten   = 0;
+	m_nOtaTotalChunks    = totalChunks;
+	m_nOtaChunksReceived = 0;
+	m_nOtaChecksum       = 0;
+
+	LOGNOTE("OTA: Start — %u chunks, %u bytes", totalChunks, (unsigned)totalBytes);
+	SendOtaAck(deviceName, nCable, 0x00);
+}
+
+void CMIDIDevice::HandleOtaChunk(const uint8_t *pMessage, size_t nLength)
+{
+	if (!m_pOtaBuffer) return;
+
+	unsigned idx = ((unsigned)pMessage[5] << 7) | pMessage[6];
+	if (idx != m_nOtaChunksReceived)
+	{
+		LOGWARN("OTA: Out-of-order chunk: got %u expected %u", idx, m_nOtaChunksReceived);
+		return;
+	}
+
+	const uint8_t *encoded    = pMessage + 7;
+	size_t         encodedLen = nLength - 8;   // strip 7 header bytes + F7
+	size_t         remaining  = m_nOtaTotalBytes - m_nOtaBytesWritten;
+
+	size_t decoded = Decode7bit(encoded, encodedLen, m_pOtaBuffer + m_nOtaBytesWritten, remaining);
+
+	for (size_t i = 0; i < decoded; i++)
+		m_nOtaChecksum = (m_nOtaChecksum ^ m_pOtaBuffer[m_nOtaBytesWritten + i]) & 0x0FFFFFFF;
+
+	m_nOtaBytesWritten  += decoded;
+	m_nOtaChunksReceived++;
+}
+
+void CMIDIDevice::HandleOtaCommit(const uint8_t *pMessage, size_t nLength,
+                                   const std::string& deviceName, unsigned nCable)
+{
+	if (!m_pOtaBuffer || m_nOtaChunksReceived != m_nOtaTotalChunks)
+	{
+		LOGWARN("OTA: Commit with incomplete transfer (%u/%u chunks)", m_nOtaChunksReceived, m_nOtaTotalChunks);
+		SendOtaAck(deviceName, nCable, 0x7F);
+		return;
+	}
+
+	uint32_t rxCs = (uint32_t)pMessage[5]
+	              | ((uint32_t)pMessage[6] <<  7)
+	              | ((uint32_t)pMessage[7] << 14)
+	              | ((uint32_t)pMessage[8] << 21);
+
+	if (rxCs != m_nOtaChecksum)
+	{
+		LOGWARN("OTA: Checksum mismatch (got %07X expected %07X)", rxCs, m_nOtaChecksum);
+		SendOtaAck(deviceName, nCable, 0x7F);
+		HandleOtaAbort();
+		return;
+	}
+
+	FILE *f = fopen("kernel8.img", "wb");
+	if (!f)
+	{
+		LOGWARN("OTA: Cannot open kernel8.img for writing");
+		SendOtaAck(deviceName, nCable, 0x7F);
+		HandleOtaAbort();
+		return;
+	}
+
+	size_t written = fwrite(m_pOtaBuffer, 1, m_nOtaTotalBytes, f);
+	fclose(f);
+
+	if (written != m_nOtaTotalBytes)
+	{
+		LOGWARN("OTA: Write incomplete (%u/%u bytes)", (unsigned)written, (unsigned)m_nOtaTotalBytes);
+		SendOtaAck(deviceName, nCable, 0x7F);
+		HandleOtaAbort();
+		return;
+	}
+
+	LOGNOTE("OTA: Kernel written (%u bytes) — rebooting", (unsigned)m_nOtaTotalBytes);
+	SendOtaAck(deviceName, nCable, 0x02);
+
+	delete[] m_pOtaBuffer;
+	m_pOtaBuffer = nullptr;
+
+	CTimer::Get()->MsSleep(800);   // allow ACK to transmit over USB
+	SystemReboot();
+}
+
+void CMIDIDevice::HandleOtaAbort()
+{
+	delete[] m_pOtaBuffer;
+	m_pOtaBuffer         = nullptr;
+	m_nOtaTotalBytes     = 0;
+	m_nOtaBytesWritten   = 0;
+	m_nOtaTotalChunks    = 0;
+	m_nOtaChunksReceived = 0;
+	m_nOtaChecksum       = 0;
+	LOGNOTE("OTA: Aborted");
+}
+
+void CMIDIDevice::SendOtaAck(const std::string& deviceName, unsigned nCable, uint8_t status)
+{
+	uint8_t msg[] = {0xF0, 0x7D, 0x4D, 0x58, 0x15, status, 0xF7};
+	TDeviceMap::const_iterator Iterator = s_DeviceMap.find(deviceName);
+	if (Iterator != s_DeviceMap.end())
+		Iterator->second->Send(msg, sizeof(msg), nCable);
+}
+
+size_t CMIDIDevice::Decode7bit(const uint8_t *src, size_t srcLen, uint8_t *dst, size_t dstMax)
+{
+	size_t out = 0;
+	for (size_t i = 0; i + 8 <= srcLen && out < dstMax; i += 8)
+	{
+		uint8_t hdr = src[i];
+		for (int j = 0; j < 7 && out < dstMax; j++)
+			dst[out++] = src[i+1+j] | (((hdr >> j) & 1) << 7);
+	}
+	return out;
+}
+
+void CMIDIDevice::SystemReboot()
+{
+	// BCM2835/6/7 (Pi 1/2/3) watchdog reset — ARM_IO_BASE from circle/bcm2835.h
+	const uintptr_t PM_BASE = ARM_IO_BASE + 0x00100000;
+	volatile uint32_t *PM_WDOG = reinterpret_cast<volatile uint32_t*>(PM_BASE + 0x24);
+	volatile uint32_t *PM_RSTC = reinterpret_cast<volatile uint32_t*>(PM_BASE + 0x1C);
+	const uint32_t MAGIC = 0x5A000000;
+	*PM_WDOG = MAGIC | 1;
+	*PM_RSTC = MAGIC | 0x20;
+	for (;;) {}
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 void CMIDIDevice::SendVersionResponse(const std::string& deviceName, unsigned nCable)
 {

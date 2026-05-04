@@ -122,6 +122,19 @@
       <button id="reset-state-btn">Reset Saved</button>
     </section>
 
+    <section class="ota-panel">
+      <h2>Firmware Update</h2>
+      <div class="ota-controls">
+        <input type="file" id="ota-file" accept=".img">
+        <button id="ota-flash-btn" disabled>Flash kernel</button>
+        <button id="ota-abort-btn" style="display:none">Abort</button>
+      </div>
+      <div class="ota-progress" id="ota-progress" style="display:none">
+        <div class="ota-bar-track"><div class="ota-bar" id="ota-bar"></div></div>
+        <span id="ota-status"></span>
+      </div>
+    </section>
+
     <section class="send-panel">
       <div class="send-controls">
         <div class="send-field">

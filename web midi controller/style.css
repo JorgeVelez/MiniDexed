@@ -963,6 +963,52 @@ select[disabled] {
   margin: 0;
 }
 
+/* ── OTA panel ── */
+.ota-panel {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ota-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.ota-progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ota-bar-track {
+  flex: 1;
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.ota-bar {
+  height: 100%;
+  width: 0%;
+  background: var(--accent, #4a9eff);
+  border-radius: 3px;
+  transition: width 0.1s linear;
+}
+
+#ota-status {
+  font-size: 11px;
+  opacity: 0.7;
+  white-space: nowrap;
+}
+
 .play-btns {
   display: flex;
   gap: 4px;

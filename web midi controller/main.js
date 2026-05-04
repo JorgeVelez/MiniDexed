@@ -5,8 +5,9 @@ import { refs, STORAGE_KEY } from './state.js';
 import {
   inSelect, outSelect, thruToggle, sendChannel,
   initMidi, setOnProgramChange, setOnHighlightKey, setOnPerformanceDump, setOnOutputChange,
-  selectedOutput, addLogEntry, setMidiThru,
+  selectedOutput, addLogEntry, setMidiThru, setOnOtaAck,
 } from './devices.js';
+import { sendKernelUpdate, sendOtaAbort } from './updater.js';
 import {
   soundChannel, sendTgCC, loadSoundState, onProgramChange,
   getCurrentProgram, getSelectedTg, getPcChannel,
@@ -134,7 +135,70 @@ refs.getPcChannel      = getPcChannel;
 
 setOnProgramChange(onProgramChange);
 setOnHighlightKey(highlightKey);
-setOnOutputChange(has => { setPerfDumpBtnEnabled(has); if (has) requestVersion(); });
+setOnOutputChange(has => { setPerfDumpBtnEnabled(has); if (has) requestVersion(); otaFlashBtn.disabled = !has || !otaFileInput.files.length; });
+
+// ── OTA ──────────────────────────────────────────────────────────────────────
+const otaFileInput  = document.getElementById('ota-file');
+const otaFlashBtn   = document.getElementById('ota-flash-btn');
+const otaAbortBtn   = document.getElementById('ota-abort-btn');
+const otaProgress   = document.getElementById('ota-progress');
+const otaBar        = document.getElementById('ota-bar');
+const otaStatusEl   = document.getElementById('ota-status');
+
+otaFileInput.addEventListener('change', () => {
+  otaFlashBtn.disabled = !selectedOutput || !otaFileInput.files.length;
+});
+
+setOnOtaAck(status => {
+  if (status === 0x02) {
+    otaStatusEl.textContent = 'Done — rebooting…';
+    otaBar.style.width = '100%';
+  } else if (status === 0x7F) {
+    otaStatusEl.textContent = 'Error from firmware';
+  } else if (status === 0x00) {
+    otaStatusEl.textContent = 'Transfer started…';
+  }
+});
+
+otaFlashBtn.addEventListener('click', async () => {
+  const file = otaFileInput.files[0];
+  if (!file || !selectedOutput) return;
+
+  otaFlashBtn.disabled = true;
+  otaAbortBtn.style.display = '';
+  otaProgress.style.display = 'flex';
+  otaBar.style.width = '0%';
+  otaStatusEl.textContent = '';
+
+  let aborted = false;
+  otaAbortBtn.onclick = () => {
+    aborted = true;
+    sendOtaAbort(selectedOutput);
+    otaStatusEl.textContent = 'Aborted';
+    otaAbortBtn.style.display = 'none';
+    otaFlashBtn.disabled = false;
+  };
+
+  try {
+    await sendKernelUpdate(
+      file,
+      selectedOutput,
+      (sent, total) => {
+        if (aborted) throw new Error('aborted');
+        const pct = Math.round(sent / total * 100);
+        otaBar.style.width = pct + '%';
+        otaStatusEl.textContent = `${pct}%  (${sent}/${total} chunks)`;
+      },
+      msg => { otaStatusEl.textContent = msg; }
+    );
+  } catch (err) {
+    if (!aborted) otaStatusEl.textContent = `Error: ${err.message}`;
+  } finally {
+    if (!aborted) otaAbortBtn.style.display = 'none';
+    otaFlashBtn.disabled = false;
+  }
+});
+// ─────────────────────────────────────────────────────────────────────────────
 setOnPerformanceDump(applyPerformanceDump);
 const voiceSel = document.getElementById('voice-select');
 voiceSel.addEventListener('change', () => {

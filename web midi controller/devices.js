@@ -27,10 +27,12 @@ let _onProgramChange    = null;
 let _onHighlightKey     = null;
 let _onPerformanceDump  = null;
 let _onVersionResponse  = null;
+let _onOtaAck           = null;
 export function setOnProgramChange(fn)   { _onProgramChange   = fn; }
 export function setOnHighlightKey(fn)    { _onHighlightKey    = fn; }
 export function setOnPerformanceDump(fn) { _onPerformanceDump = fn; }
 export function setOnVersionResponse(fn) { _onVersionResponse = fn; }
+export function setOnOtaAck(fn)          { _onOtaAck          = fn; }
 
 // --- MIDI init ---
 export async function initMidi() {
@@ -135,6 +137,13 @@ function onMidiMessage(e) {
       const version = String.fromCharCode(...e.data.slice(5, -1));
       if (_onVersionResponse) _onVersionResponse(version);
       addLogEntry('SysEx', 'sysex', `Version: ${version}`, 'in');
+      return;
+    }
+    // OTA ACK: F0 7D 4D 58 15 [status] F7
+    if (e.data.length === 7 && e.data[1] === 0x7D && e.data[2] === 0x4D && e.data[3] === 0x58 && e.data[4] === 0x15) {
+      const status = e.data[5];
+      if (_onOtaAck) _onOtaAck(status);
+      addLogEntry('OTA', 'sysex', `ACK status=0x${status.toString(16).padStart(2,'0')}`, 'in');
       return;
     }
     const text = [...e.data].filter(b => b >= 0x20 && b <= 0x7e).map(b => String.fromCharCode(b)).join('').replace(/^[^a-zA-Z0-9\[{(]+/, '');

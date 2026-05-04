@@ -60,6 +60,15 @@ public:
 	void SendVersionResponse(const std::string& deviceName, unsigned nCable);
 	const std::string& GetDeviceName() const { return m_DeviceName; }
 
+	// OTA kernel update via SysEx
+	void HandleOtaStart  (const uint8_t *pMessage, size_t nLength, const std::string& deviceName, unsigned nCable);
+	void HandleOtaChunk  (const uint8_t *pMessage, size_t nLength);
+	void HandleOtaCommit (const uint8_t *pMessage, size_t nLength, const std::string& deviceName, unsigned nCable);
+	void HandleOtaAbort  ();
+	void SendOtaAck      (const std::string& deviceName, unsigned nCable, uint8_t status);
+	static size_t Decode7bit (const uint8_t *src, size_t srcLen, uint8_t *dst, size_t dstMax);
+	static void   SystemReboot ();
+
 protected:
 	void MIDIMessageHandler (const u8 *pMessage, size_t nLength, unsigned nCable = 0);
 	void AddDevice (const char *pDeviceName);
@@ -83,6 +92,14 @@ private:
 	unsigned m_nMIDIGlobalExpression;
 
 	std::string m_DeviceName;
+
+	// OTA state
+	uint8_t  *m_pOtaBuffer;
+	size_t    m_nOtaTotalBytes;
+	size_t    m_nOtaBytesWritten;
+	unsigned  m_nOtaTotalChunks;
+	unsigned  m_nOtaChunksReceived;
+	uint32_t  m_nOtaChecksum;
 
 	typedef std::unordered_map<std::string, CMIDIDevice *> TDeviceMap;
 	static TDeviceMap s_DeviceMap;
