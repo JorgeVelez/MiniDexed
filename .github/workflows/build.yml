@@ -40,20 +40,6 @@ jobs:
           wget -q https://developer.arm.com/-/media/Files/downloads/gnu/13.3.rel1/binrel/arm-gnu-toolchain-13.3.rel1-x86_64-aarch64-none-elf.tar.xz
           tar xf arm-gnu-toolchain-13.3.rel1-x86_64-aarch64-none-elf.tar.xz
 
-      - name: Build for Raspberry Pi 5 (64-bit)
-        run: |
-          set -ex
-          export PATH=$(readlink -f ./arm-*/bin/):$PATH
-          RPI=5 bash -ex build.sh
-          cp ./src/kernel*.img ./sdcard/
-
-      - name: Build for Raspberry Pi 4 (64-bit)
-        run: |
-          set -ex
-          export PATH=$(readlink -f ./arm-*/bin/):$PATH
-          RPI=4 bash -ex build.sh
-          cp ./src/kernel*.img ./sdcard/
-
       - name: Build for Raspberry Pi 3 (64-bit)
         run: |
           set -ex
@@ -97,59 +83,10 @@ jobs:
           name: MiniDexed_${{ github.run_number }}_${{ steps.gitinfo.outputs.git_info }}_64bit
           path: sdcard/*
 
-  build32:
-    name: Build 32-bit kernels
-    runs-on: ubuntu-22.04
-    outputs:
-      artifact-path: ${{ steps.upload32.outputs.artifact-path }}
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Compute Git Info for Artifact Name
-        run: echo "GIT_INFO=$(date +%Y-%m-%d)-$(git rev-parse --short HEAD)" >> $GITHUB_ENV
-
-      - name: Get specific commits of git submodules
-        run: sh -ex ./submod.sh
-
-      - name: Create sdcard directory
-        run: mkdir -p ./sdcard/
-
-      - name: Put git hash in startup message
-        run: |
-          sed -i "s/Loading.../${{ env.GIT_INFO }}/g" src/userinterface.cpp
-
-      # Install 32-bit toolchain (arm-none-eabi)
-      - name: Install 32-bit toolchain
-        run: |
-          set -ex
-          wget -q https://developer.arm.com/-/media/Files/downloads/gnu/13.3.rel1/binrel/arm-gnu-toolchain-13.3.rel1-x86_64-arm-none-eabi.tar.xz
-          tar xf arm-gnu-toolchain-13.3.rel1-x86_64-arm-none-eabi.tar.xz
-
-      - name: Build for Raspberry Pi 2 (32-bit)
-        run: |
-          set -ex
-          export PATH=$(readlink -f ./arm-*/bin/):$PATH
-          RPI=2 bash -ex build.sh
-          cp ./src/kernel*.img ./sdcard/
-
-      - name: Build for Raspberry Pi 1 (32-bit)
-        run: |
-          set -ex
-          export PATH=$(readlink -f ./arm-*/bin/):$PATH
-          RPI=1 bash -ex build.sh
-          cp ./src/kernel*.img ./sdcard/
-
-      - name: Upload 32-bit artifacts
-        id: upload32
-        uses: actions/upload-artifact@v4
-        with:
-          name: MiniDexed_${{ github.run_number }}_${{ env.GIT_INFO }}_32bit
-          path: sdcard/*
-
   combine:
     name: Combine Artifacts
     runs-on: ubuntu-22.04
-    needs: [ build64, build32 ]
+    needs: [ build64 ]
     steps:
       - name: Download artifacts
         uses: actions/download-artifact@v4

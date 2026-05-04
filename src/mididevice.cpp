@@ -1115,7 +1115,7 @@ void CMIDIDevice::HandleOtaCommit(const uint8_t *pMessage, size_t nLength,
 	delete[] m_pOtaBuffer;
 	m_pOtaBuffer = nullptr;
 
-	CTimer::Get()->MsSleep(800);   // allow ACK to transmit over USB
+	CTimer::Get()->MsDelay(800);   // allow ACK to transmit over USB
 	SystemReboot();
 }
 
