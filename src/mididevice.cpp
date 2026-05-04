@@ -1167,7 +1167,7 @@ void CMIDIDevice::SystemReboot()
 
 void CMIDIDevice::SendVersionResponse(const std::string& deviceName, unsigned nCable)
 {
-	static const char version[] = "jorge build v.720";
+	static const char version[] = "MINIDEXED_BUILD_VERSION";
 	const unsigned nLen = sizeof(version) - 1;
 
 	uint8_t buf[5 + nLen + 1];
